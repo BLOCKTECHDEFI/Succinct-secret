@@ -46,12 +46,16 @@ form.addEventListener("submit", async (e) => {
 });
 
 // ✅ Live sync messages across all users
+// ✅ Live sync messages across all users, with clean layout
 onSnapshot(secretsRef, (snapshot) => {
   board.innerHTML = "";
+
+  const messages = [];
   snapshot.forEach((doc) => {
-    const data = doc.data();
-    addMessage(data.text);
+    messages.push(doc.data().text);
   });
+
+  layoutMessagesNeatly(messages);
 });
 
 // ✅ Floating draggable secret cards
@@ -59,18 +63,28 @@ function addMessage(text) {
   const div = document.createElement("div");
   div.className = "message";
   div.textContent = text;
-  randomizePosition(div);
+
+  // Temporarily hide the element until it’s positioned
+  div.style.opacity = 0;
   board.appendChild(div);
-  makeDraggable(div);
+
+  // Wait for next frame to get accurate dimensions
+  requestAnimationFrame(() => {
+    randomizePosition(div);
+    div.style.opacity = 1;
+    makeDraggable(div);
+  });
 }
 
 function randomizePosition(el) {
-  const board = document.getElementById("boardContainer");
   const boardRect = board.getBoundingClientRect();
 
-  const margin = 20; // distance from the edges
-  const maxLeft = boardRect.width - el.offsetWidth - margin;
-  const maxTop = boardRect.height - el.offsetHeight - margin;
+  const elWidth = el.offsetWidth || 200; // Fallback width
+  const elHeight = el.offsetHeight || 100; // Fallback height
+  const margin = 10;
+
+  const maxLeft = Math.max(0, boardRect.width - elWidth - margin);
+  const maxTop = Math.max(0, boardRect.height - elHeight - margin);
 
   const left = Math.random() * maxLeft + margin;
   const top = Math.random() * maxTop + margin;
@@ -104,8 +118,8 @@ function makeDraggable(el) {
     let y = e.clientY - offsetY;
 
     // Clamp within bounds of the board
-    x = Math.max(10, Math.min(x, boardRect.width - elWidth - 10));
-    y = Math.max(10, Math.min(y, boardRect.height - elHeight - 10));
+    x = Math.max(0, Math.min(x, boardRect.width - elWidth));
+    y = Math.max(0, Math.min(y, boardRect.height - elHeight));
 
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
@@ -150,3 +164,41 @@ window.addEventListener("load", () => {
     { once: true }
   );
 });
+
+function layoutMessagesNeatly(messages) {
+  const boardRect = board.getBoundingClientRect();
+
+  const cardWidth = 280;
+  const cardHeight = 120;
+  const gap = 20;
+
+  const maxCols = Math.floor((boardRect.width - gap) / (cardWidth + gap));
+  let col = 0;
+  let row = 0;
+
+  messages.forEach((text) => {
+    const div = document.createElement("div");
+    div.className = "message";
+    div.textContent = text;
+
+    const x = gap + col * (cardWidth + gap);
+    const y = gap + row * (cardHeight + gap);
+
+    div.style.left = `${x}px`;
+    div.style.top = `${y}px`;
+    div.style.opacity = 0;
+
+    board.appendChild(div);
+
+    requestAnimationFrame(() => {
+      div.style.opacity = 1;
+      makeDraggable(div);
+    });
+
+    col++;
+    if (col >= maxCols) {
+      col = 0;
+      row++;
+    }
+  });
+}
