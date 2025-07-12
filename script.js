@@ -63,17 +63,8 @@ function addMessage(text) {
   const div = document.createElement("div");
   div.className = "message";
   div.textContent = text;
-
-  // Temporarily hide the element until it’s positioned
-  div.style.opacity = 0;
   board.appendChild(div);
-
-  // Wait for next frame to get accurate dimensions
-  requestAnimationFrame(() => {
-    randomizePosition(div);
-    div.style.opacity = 1;
-    makeDraggable(div);
-  });
+  makeDraggable(div); // Optional
 }
 
 function randomizePosition(el) {
